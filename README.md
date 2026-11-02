@@ -41,7 +41,7 @@
 
 ## 安装
 
-从 [apk/shacaihuasuan-v2.0.2.apk](apk/啥菜划算-v2.0.2.apk) 下载安装。
+从 [apk/shacaihuasuan-v2.0.2.apk](apk/shacaihuasuan-v2.0.2.apk) 下载安装。
 
 - 最低 Android 8.0
 - 已在小米 15 Pro / Android 17 上测试
