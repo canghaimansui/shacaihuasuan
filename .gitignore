@@ -1,0 +1,21 @@
+# Android
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 签名文件与密钥
+*.jks
+*.keystore
+debug.keystore
+
+# 临时文件
+*.log
+*.tmp
+*.apk
+!apk/*.apk

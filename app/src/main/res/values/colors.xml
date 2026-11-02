@@ -1,0 +1,9 @@
+<resources>
+    <color name="bg">#F6F4EE</color>
+    <color name="ink">#18251E</color>
+    <color name="green">#1E8A4D</color>
+    <color name="green_dark">#143E2B</color>
+    <color name="soft">#E7F3EA</color>
+    <color name="orange">#E8891C</color>
+    <color name="icon_bg">#FFFFFF</color>
+</resources>
