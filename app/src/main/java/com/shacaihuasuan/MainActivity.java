@@ -86,7 +86,7 @@ public class MainActivity extends Activity {
         top.addView(names, nlp);
         LinearLayout right = Ui.col(this);
         right.setGravity(Gravity.END);
-        cityBtn = Ui.tv(this, ("sh".equals(Repo.get().city()) ? "上海" : "北京") + "  ▾", 12, Ui.INK, true);
+        cityBtn = Ui.tv(this, Repo.get().cityName() + "  ▾", 12, Ui.INK, true);
         cityBtn.setOnClickListener(v -> cityDialog());
         right.addView(cityBtn);
         dateTv = Ui.tv(this, Repo.get().date() + " 更新", 9, Ui.MUTED, false);
@@ -122,10 +122,8 @@ public class MainActivity extends Activity {
         big.setMinimumHeight(Ui.dp(this,40));
         big.setGravity(Gravity.BOTTOM);
         big.addView(Ui.tv(this, Repo.get().overviewTop(), 25, 0xFFF4EFE2, true));
-        if (Repo.get().isShanghai()) {
-            String up = Repo.get().overviewUp();
-            if (up != null && !up.isEmpty()) big.addView(Ui.tv(this, "  · " + up, 10, 0xFFBCD6C4, false));
-        }
+        String up = Repo.get().overviewUp();
+        if (up != null && !up.isEmpty()) big.addView(Ui.tv(this, "  · " + up, 10, 0xFFBCD6C4, false));
         hero.addView(big);
         TextView note = Ui.tv(this, Repo.get().overviewNote(), 9, 0xFFBCD6C4, false);
         Ui.margin(note, 0, Ui.dp(this,5), 0, 0);
@@ -226,11 +224,12 @@ public class MainActivity extends Activity {
     }
 
     private void cityDialog() {
-        final String[] items = {"上海（逐店零售）", "北京（农贸/超市/批发）"};
+        final String[] items = {"成都（全市均价）", "上海（逐店零售）", "北京（农贸/超市/批发）"};
+        final String[] ids = {"cd", "sh", "bj"};
         new AlertDialog.Builder(this)
                 .setTitle("选择城市")
                 .setItems(items, (d, w) -> {
-                    Repo.get().setCity(w == 0 ? "sh" : "bj");
+                    Repo.get().setCity(ids[w]);
                     render();
                 }).show();
     }

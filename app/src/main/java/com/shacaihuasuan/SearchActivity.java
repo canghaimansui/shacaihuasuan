@@ -77,5 +77,6 @@ public class SearchActivity extends Activity {
             list.addView(row);
         }
         if (n == 0) list.addView(Ui.tv(this, "没有找到，换个说法试试。", 12, Ui.MUTED, false));
+        else list.addView(Ui.tv(this, "共 " + n + " 个结果 · " + Repo.get().cityName(), 8.5f, Ui.LIGHT, false));
     }
 }

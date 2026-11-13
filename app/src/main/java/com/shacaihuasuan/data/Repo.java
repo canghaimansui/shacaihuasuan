@@ -17,7 +17,7 @@ import java.util.concurrent.Executors;
 
 public class Repo {
     public static class RefreshResult {
-        public boolean shanghai, beijing;
+        public boolean shanghai, beijing, chengdu;
         public String message = "";
     }
     public interface Callback { void done(RefreshResult r); }
@@ -26,7 +26,8 @@ public class Repo {
     private final Context app;
     private final List<Model.Product> sh = new ArrayList<>();
     private final List<Model.Product> bj = new ArrayList<>();
-    private Model.Meta shMeta = new Model.Meta(), bjMeta = new Model.Meta();
+    private final List<Model.Product> cd = new ArrayList<>();
+    private Model.Meta shMeta = new Model.Meta(), bjMeta = new Model.Meta(), cdMeta = new Model.Meta();
     private final ExecutorService pool = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
     private String city;
@@ -40,12 +41,20 @@ public class Repo {
     private Repo(Context c) {
         app = c;
         SharedPreferences sp = c.getSharedPreferences("app", Context.MODE_PRIVATE);
-        city = sp.getString("city", "sh");
+        // 默认城市：成都。老版本升级上来的也切一次，之后尊重用户选择。
+        if (!sp.getBoolean("defaultCityV3", false)) {
+            city = "cd";
+            sp.edit().putString("city", "cd").putBoolean("defaultCityV3", true).apply();
+        } else {
+            city = sp.getString("city", "cd");
+        }
         try {
             Model.CityData a = JsonData.parse(JsonData.readAsset(c, "shanghai.json"), "sh");
             sh.addAll(a.products); shMeta = a.meta;
             Model.CityData b = JsonData.parse(JsonData.readAsset(c, "beijing.json"), "bj");
             bj.addAll(b.products); bjMeta = b.meta;
+            Model.CityData d = JsonData.parse(JsonData.readAsset(c, "chengdu.json"), "cd");
+            cd.addAll(d.products); cdMeta = d.meta;
         } catch (Exception e) { e.printStackTrace(); }
         // cached latest data
         try {
@@ -59,6 +68,10 @@ public class Repo {
                 String ms = read(m), vs = read(v);
                 mergeBeijing(BeijingSource.parse(ms, vs));
             }
+        } catch (Exception ignored) {}
+        try {
+            File f = new File(c.getFilesDir(), "cd_latest.json");
+            if (f.exists()) mergeChengdu(ChengduSource.parseCache(read(f)));
         } catch (Exception ignored) {}
     }
 
@@ -77,12 +90,28 @@ public class Repo {
         app.getSharedPreferences("app", Context.MODE_PRIVATE).edit().putString("city", c).apply();
     }
     public boolean isShanghai() { return "sh".equals(city); }
-    public Model.Meta meta() { return isShanghai() ? shMeta : bjMeta; }
-    public List<Model.Product> all() { return isShanghai() ? sh : bj; }
+    public boolean isBeijing() { return "bj".equals(city); }
+    public boolean isChengdu() { return "cd".equals(city); }
+    public String cityName() {
+        if (isShanghai()) return "上海";
+        if (isBeijing()) return "北京";
+        return "成都";
+    }
+    public Model.Meta meta() {
+        if (isShanghai()) return shMeta;
+        if (isBeijing()) return bjMeta;
+        return cdMeta;
+    }
+    public List<Model.Product> all() {
+        if (isShanghai()) return sh;
+        if (isBeijing()) return bj;
+        return cd;
+    }
 
     public Model.Product byId(String id) {
         for (Model.Product p : sh) if (p.id.equals(id)) return p;
         for (Model.Product p : bj) if (p.id.equals(id)) return p;
+        for (Model.Product p : cd) if (p.id.equals(id)) return p;
         return null;
     }
 
@@ -122,20 +151,21 @@ public class Repo {
 
     public String overviewTop() {
         if (isShanghai()) {
-            int down = 0, up = 0;
+            int down = 0;
             for (Model.Product p : sh) {
                 if (p.series.size() < 2) continue;
                 double a = p.series.get(0).avg, b = p.series.get(p.series.size() - 1).avg;
-                if (b < a - 1e-6) down++; else if (b > a + 1e-6) up++;
+                if (b < a - 1e-6) down++;
             }
             return down + " 个降价";
         }
+        if (isBeijing()) return "今日参考";
         return "今日参考";
     }
     public String overviewUp() {
-        if (!isShanghai()) return "";
+        List<Model.Product> list = all();
         int up = 0;
-        for (Model.Product p : sh) {
+        for (Model.Product p : list) {
             if (p.series.size() < 2) continue;
             double a = p.series.get(0).avg, b = p.series.get(p.series.size() - 1).avg;
             if (b > a + 1e-6) up++;
@@ -143,28 +173,36 @@ public class Repo {
         return up + " 个涨价";
     }
     public String overviewSub() {
-        if (isShanghai()) return "近 30 天 · 上海 64 个品种";
-        return "北京 · 农贸 / 超市 / 批发";
+        if (isShanghai()) return "近 30 天 · 上海 " + countAll() + " 个品种";
+        if (isBeijing()) return "北京 · 农贸 / 超市 / 批发";
+        return "成都 · 全市均价";
     }
     public String overviewNote() {
         if (isShanghai()) return "价格为监测点均价 · 仅供参考";
-        return "农贸/超市为全市均价，批发为新发地参考";
+        if (isBeijing()) return "农贸/超市为全市均价，批发为新发地参考";
+        return "成都市价格服务公益平台 · 全市均价";
     }
+    public int countAll() { return all().size(); }
 
     public void refresh(Callback cb) {
         pool.execute(() -> {
             RefreshResult r = new RefreshResult();
             XlsParser.Parsed shParsed = null;
             BeijingSource.Result bjParsed = null;
+            Model.CityData cdParsed = null;
             try { shParsed = ShanghaiSource.fetch(app); r.shanghai = true; }
             catch (Exception e) { r.message += "上海: " + e.getMessage() + " "; }
             try { bjParsed = BeijingSource.fetch(app); r.beijing = true; }
             catch (Exception e) { r.message += "北京: " + e.getMessage() + " "; }
+            try { cdParsed = ChengduSource.fetch(app); r.chengdu = true; }
+            catch (Exception e) { r.message += "成都: " + e.getMessage() + " "; }
             final XlsParser.Parsed sp = shParsed;
             final BeijingSource.Result bp = bjParsed;
+            final Model.CityData cp = cdParsed;
             main.post(() -> {
                 if (sp != null) mergeShanghai(sp);
                 if (bp != null) mergeBeijing(bp);
+                if (cp != null) mergeChengdu(cp);
                 cb.done(r);
             });
         });
@@ -221,6 +259,23 @@ public class Repo {
         if (parsed.date != null && !parsed.date.isEmpty()) bjMeta.latestDate = parsed.date;
     }
 
+    private void mergeChengdu(Model.CityData parsed) {
+        Map<String, Model.Product> byName = new HashMap<>();
+        for (Model.Product p : parsed.products) byName.put(p.name, p);
+        for (Model.Product p : cd) {
+            Model.Product src = byName.get(p.name);
+            if (src == null) continue;
+            p.current = src.current;
+            if (src.series.size() > 1) p.prev = src.series.get(src.series.size() - 2).avg;
+            p.series.clear();
+            p.series.addAll(src.series);
+            p.unit = src.unit;
+            p.tag = tagOf(p);
+        }
+        if (parsed.meta != null && parsed.meta.latestDate != null && !parsed.meta.latestDate.isEmpty())
+            cdMeta.latestDate = parsed.meta.latestDate;
+    }
+
     public static String tagOf(Model.Product p) {
         if (p.series.size() < 5) return "正常";
         List<Double> avgs = new ArrayList<>();
@@ -241,11 +296,11 @@ public class Repo {
 
     private static final Map<String, List<String>> HOME = new HashMap<>();
     static {
-        HOME.put("veg", java.util.Arrays.asList("青菜","花菜","西红柿","土豆","大白菜","黄瓜","菠菜","芹菜","大白菜"));
-        HOME.put("fruit", java.util.Arrays.asList("苹果","富士苹果","香蕉","国产香蕉","橙子","脐橙","梨","鸭梨","西瓜","葡萄"));
-        HOME.put("meat", java.util.Arrays.asList("猪精瘦肉","猪肋条肉","猪带皮后腿肉","猪肋排","牛腩","牛腱子","白条鸡","鲜羊肉","白条猪","鸭子","鲜牛肉"));
-        HOME.put("dairy", java.util.Arrays.asList("鸡蛋","牛奶"));
+        HOME.put("veg", java.util.Arrays.asList("青菜","花菜","西红柿","土豆","大白菜","黄瓜","菠菜","芹菜","青椒","白萝卜","莲花白"));
+        HOME.put("fruit", java.util.Arrays.asList("苹果","富士苹果","苹果（红富士）","香蕉","国产香蕉","橙子","脐橙","梨","鸭梨","西瓜","葡萄"));
+        HOME.put("meat", java.util.Arrays.asList("猪精瘦肉","猪肋条肉","猪带皮后腿肉","猪肋排","牛腩","牛腱子","白条鸡","鲜羊肉","白条猪","鸭子","鲜牛肉","猪肉（精瘦）","猪肉（去骨一级）","五花肉","排骨","牛肉","羊肉","鸡肉"));
+        HOME.put("dairy", java.util.Arrays.asList("鸡蛋","洋鸡蛋","牛奶"));
         HOME.put("aqua", java.util.Arrays.asList("基围虾","鲫鱼","带鱼","草鱼","花鲢","黄鱼","鲢鱼"));
-        HOME.put("grain", java.util.Arrays.asList("粳米","面粉","切面","大豆油","富强粉","标准粉","鲁花花生油","金龙鱼调和油"));
+        HOME.put("grain", java.util.Arrays.asList("粳米","面粉","切面","大豆油","富强粉","标准粉","鲁花花生油","金龙鱼调和油","粳米（珍珠米）","大米（普通散装）","调和油（5L桶装）"));
     }
 }

@@ -43,12 +43,13 @@ public class DetailActivity extends Activity {
         head.addView(back);
         head.addView(Ui.tv(this, p.displayName, 20, Ui.INK, true));
         View sp = new View(this); head.addView(sp, new LinearLayout.LayoutParams(0,1,1));
-        head.addView(Ui.tv(this, p.isBeijing() ? "北京" : "上海", 11, Ui.MUTED, false));
+        head.addView(Ui.tv(this, p.isChengdu() ? "成都" : (p.isBeijing() ? "北京" : "上海"), 11, Ui.MUTED, false));
         root.addView(head);
         View gap = new View(this); root.addView(gap, new LinearLayout.LayoutParams(1, Ui.dp(this,8)));
 
         if (p.isMilk) { milk(root); }
         else if (p.isBeijing()) { beijing(root); }
+        else if (p.isChengdu()) { chengdu(root); }
         else { shanghai(root); }
 
         // buttons
@@ -75,6 +76,59 @@ public class DetailActivity extends Activity {
         Ui.margin(big, 0, Ui.dp(this,10), 0, 0); card.addView(big);
         card.addView(Ui.tv(this, "上海和北京的官方监测数据中，暂时没有乳制品价格。", 9, Ui.MUTED, false));
         root.addView(card);
+    }
+
+    private void chengdu(LinearLayout root) {
+        LinearLayout hero = Ui.col(this);
+        hero.addView(Ui.tv(this, "成都市 · 全市均价", 9, Ui.MUTED, false));
+        LinearLayout priceRow = Ui.row(this);
+        priceRow.setGravity(Gravity.BOTTOM);
+        priceRow.addView(Ui.tv(this, Ui.money(p.current), 40, Ui.INK, true));
+        TextView unit = Ui.tv(this, " " + p.unit, 10, Ui.MUTED, false);
+        Ui.margin(unit, Ui.dp(this,6), 0, 0, Ui.dp(this,7));
+        priceRow.addView(unit);
+        View sp = new View(this); priceRow.addView(sp, new LinearLayout.LayoutParams(0,1,1));
+        priceRow.addView(Ui.tag(this, p.tag));
+        hero.addView(priceRow);
+        root.addView(hero);
+
+        if (p.series.size() > 1) {
+            LinearLayout card = card("近 " + p.series.size() + " 天走势", p.unit);
+            LineView line = new LineView(this);
+            List<Double> vals = new ArrayList<>();
+            for (Model.Day d : p.series) vals.add(d.avg);
+            line.set(vals, Ui.GREEN);
+            card.addView(line, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this,100)));
+            LinearLayout dates = Ui.row(this);
+            dates.addView(Ui.tv(this, p.series.get(0).date, 8, Ui.LIGHT, false));
+            View spd = new View(this); dates.addView(spd, new LinearLayout.LayoutParams(0,1,1));
+            dates.addView(Ui.tv(this, p.series.get(p.series.size()-1).date, 8, Ui.LIGHT, false));
+            card.addView(dates);
+            root.addView(card);
+
+            double mn = Double.MAX_VALUE, mx = -Double.MAX_VALUE, sum = 0;
+            for (Model.Day d : p.series) { if (d.avg < mn) mn = d.avg; if (d.avg > mx) mx = d.avg; sum += d.avg; }
+            LinearLayout stats = Ui.row(this);
+            stats.addView(stat("今日最低", p.todayMin == null ? mn : p.todayMin, "全市监测点"));
+            stats.addView(stat("今日均价", p.current, "全市"));
+            stats.addView(stat("今日最高", p.todayMax == null ? mx : p.todayMax, "全市监测点"));
+            LinearLayout.LayoutParams stlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            stlp.topMargin = Ui.dp(this,10);
+            root.addView(stats, stlp);
+        }
+
+        LinearLayout why = card("价格说明", "");
+        why.addView(noteLine("成都为全市监测点均价，非单店价格。"));
+        why.addView(noteLine("今日最低 / 最高为该品种各监测点的价格区间。"));
+        why.addView(noteLine("历史曲线为近 7 天均价，来自成都市价格服务公益平台。"));
+        why.addView(noteLine("上海存在逐店监测数据，具体门店见上海详情页。"));
+        root.addView(why);
+
+        LinearLayout src = card("数据来源", "查看原始数据  ›");
+        src.addView(Ui.tv(this, "成都市城市居民生活价格服务公益平台", 9, Ui.MUTED, false));
+        src.addView(Ui.tv(this, "最近更新 · " + Repo.get().date(), 9, Ui.MUTED, false));
+        src.addView(Ui.tv(this, "价格仅供参考，以实际结算为准。", 8, Ui.LIGHT, false));
+        root.addView(src);
     }
 
     private void shanghai(LinearLayout root) {

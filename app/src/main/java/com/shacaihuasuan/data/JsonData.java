@@ -50,6 +50,8 @@ public class JsonData {
             if (!o.isNull("farm")) p.farm = o.optDouble("farm");
             if (!o.isNull("supermarket")) p.supermarket = o.optDouble("supermarket");
             if (!o.isNull("wholesale")) p.wholesale = o.optDouble("wholesale");
+            if (!o.isNull("todayMin")) p.todayMin = o.optDouble("todayMin");
+            if (!o.isNull("todayMax")) p.todayMax = o.optDouble("todayMax");
             JSONObject os = o.optJSONObject("outlet30");
             if (os != null) {
                 p.outlet30 = new Model.OutletStats();

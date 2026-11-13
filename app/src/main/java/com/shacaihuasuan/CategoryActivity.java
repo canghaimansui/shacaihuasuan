@@ -44,7 +44,7 @@ public class CategoryActivity extends Activity {
         head.addView(back);
         head.addView(Ui.tv(this, Repo.get().categoryName(cat), 20, Ui.INK, true));
         View sp = new View(this); head.addView(sp, new LinearLayout.LayoutParams(0,1,1));
-        head.addView(Ui.tv(this, Repo.get().isShanghai() ? "上海" : "北京", 11, Ui.MUTED, false));
+        head.addView(Ui.tv(this, Repo.get().cityName(), 11, Ui.MUTED, false));
         root.addView(head);
 
         if ("meat".equals(cat) || "dairy".equals(cat)) {
@@ -131,6 +131,9 @@ public class CategoryActivity extends Activity {
         } else if (p.isBeijing()) {
             TextView line = Ui.tv(this, three(p), 9, Ui.MUTED, false);
             Ui.margin(line, 0, Ui.dp(this,7), 0, 0); c.addView(line);
+        } else if (p.isChengdu()) {
+            TextView line = Ui.tv(this, chengduLine(p), 9, Ui.MUTED, false);
+            Ui.margin(line, 0, Ui.dp(this,7), 0, 0); c.addView(line);
         } else if (p.outlet30 != null) {
             BandView band = new BandView(this);
             band.set(p.outlet30.min, p.outlet30.p20, p.outlet30.p50, p.outlet30.p80, p.outlet30.max, p.current);
@@ -149,6 +152,12 @@ public class CategoryActivity extends Activity {
             Intent i = new Intent(this, DetailActivity.class); i.putExtra("id", p.id); startActivity(i);
         });
         return c;
+    }
+    private String chengduLine(Model.Product p) {
+        if (p.series.isEmpty()) return "全市均价 · 暂无历史";
+        double mn = Double.MAX_VALUE, mx = -Double.MAX_VALUE;
+        for (Model.Day d : p.series) { if (d.avg < mn) mn = d.avg; if (d.avg > mx) mx = d.avg; }
+        return "近 " + p.series.size() + " 天 " + Ui.money(mn) + " ~ " + Ui.money(mx) + " · " + p.unit;
     }
     private String three(Model.Product p) {
         return "农贸 " + (p.farm==null?"—":Ui.money(p.farm)) + "  ·  超市 " + (p.supermarket==null?"—":Ui.money(p.supermarket)) + "  ·  批发 " + (p.wholesale==null?"—":Ui.money(p.wholesale));

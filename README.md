@@ -2,6 +2,8 @@
 
 买菜前打开 10 秒，知道今天这个价贵不贵、大概该花多少钱、周围哪里更便宜。
 
+支持 **成都（默认）**、上海、北京三个城市。
+
 一个 Android 小工具，面向不熟悉菜价行情的人。数据全部来自官方公开的每日价格监测，不抓取电商平台价格。
 
 ![首页](docs/home.png)
@@ -21,14 +23,16 @@
 
 | 城市 | 来源 | 口径 | 更新 |
 |---|---|---|---|
+| 成都（默认） | [成都市城市居民生活价格服务公益平台](https://www.cdprice.cn/) | 全市监测点均价 | 每日 |
 | 上海 | [上海市发改委 · 价格监管动态](https://fgw.sh.gov.cn/fgw_jgjgdt/) 每日 XLS | 逐店零售价 | 每个工作日 |
 | 北京 | [北京价格 · 每日价格](https://www.beijingprice.cn/mrjg/) JSON | 全市农贸 / 超市均价 | 每日 |
 | 北京 30 天 | [新发地](http://www.xinfadi.com.cn/priceDetail.html) | 批发价 | 每日 |
 
 - 单位统一 **元/500g**；食用油按原包装单位。
+- 成都有 38 个品种的全市均价与近 7 天走势。
 - 上海有 50+ 个监测点逐店价格，所以能给出“今天最便宜的 3 家店”。
 - 北京每日 JSON 只有全市均价，没有门店明细，故不列店名。
-- 牛奶：官方监测数据中没有乳制品价格，显示“牛奶相关信息暂无数据源”。
+- 牛奶：上海、北京的官方监测数据中没有乳制品价格，显示“牛奶相关信息暂无数据源”；成都有真实牛奶价格。
 
 ## 价格怎么算
 
@@ -41,7 +45,7 @@
 
 ## 安装
 
-从 [apk/shacaihuasuan-v2.0.2.apk](apk/shacaihuasuan-v2.0.2.apk) 下载安装。
+从 [apk/shacaihuasuan-v2.1.0.apk](apk/shacaihuasuan-v2.1.0.apk) 下载安装。
 
 - 最低 Android 8.0
 - 已在小米 15 Pro / Android 17 上测试
@@ -99,6 +103,7 @@ app/src/main/java/com/shacaihuasuan/
 │   ├── XlsParser.java         解析上海 XLS
 │   ├── ShanghaiSource.java    抓上海最新 XLS
 │   ├── BeijingSource.java     抓北京每日 JSON
+│   ├── ChengduSource.java     抓成都品种价格与 7 天序列
 │   └── Network.java           HTTP
 └── widget/
     ├── BandView.java          30 天价格带
@@ -107,6 +112,7 @@ app/src/main/java/com/shacaihuasuan/
 
 ## 已知限制
 
+- 成都历史曲线为 7 天（平台只提供 7 天）。
 - 北京新发地 30 天曲线目前是内置快照，零售价可下拉刷新。
 - 平台 App 包名可能随版本变化；如果已安装却提示“暂未安装”，改 `PlatformDialog.java` 里的包名。
 - 小红书搜索 scheme 依赖 App 版本，失败会回退到打开首页 + 复制关键词。

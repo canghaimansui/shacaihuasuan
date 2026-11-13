@@ -24,11 +24,12 @@ public class Model {
         public OutletStats outlet30;
         public List<Shop> cheapest3 = new ArrayList<>();
         public int belowP20, outletCount;
-        public Double farm, supermarket, wholesale;
+        public Double farm, supermarket, wholesale, todayMin, todayMax;
         public String seriesType = "retail";
         public String city;
 
         public boolean isBeijing() { return "bj".equals(city); }
+        public boolean isChengdu() { return "cd".equals(city); }
         public String priceUnit() { return unit == null || unit.isEmpty() ? "元/500g" : unit; }
     }
     public static class Meta {
